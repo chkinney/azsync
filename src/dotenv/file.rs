@@ -95,7 +95,7 @@ impl DotenvFile {
         // Append new values to the end
         if !added.is_empty() {
             // Add newline to the end if needed
-            if content.chars().last().is_none_or(|c| c != '\n') {
+            if content.chars().last().is_some_and(|c| c != '\n') {
                 content.push('\n');
             }
 
@@ -163,5 +163,20 @@ mod tests {
         let replaced = dotenv.replace(replacements);
 
         assert_eq!(EXPANSION_REPLACED, replaced);
+    }
+
+    #[test]
+    fn replace_empty() {
+        let dotenv = DotenvFile::default();
+        let replacements = [("A", "aaa"), ("B", "bbb"), ("C", "ccc")]
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect();
+        let expected: HashSet<_> = ["A=aaa", "B=bbb", "C=ccc"].into_iter().collect();
+
+        let replaced = dotenv.replace(replacements);
+
+        let lines: HashSet<_> = replaced.lines().collect();
+        assert_eq!(lines, expected);
     }
 }
