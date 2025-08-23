@@ -3,6 +3,13 @@ name = "azsync"
 version = "0.1.1"
 edition = "2024"
 license = "MIT OR Apache-2.0"
+publish = false
+
+description = "Quickly synchronize local secrets with Azure"
+readme = "README.md"
+repository = "https://github.com/chkinney/azsync"
+categories = ["command-line-utilities", "development-tools"]
+keywords = ["azure", "keyvault", "secrets", "dotenv", "env"]
 
 [dependencies]
 anyhow = "1.0.99"
