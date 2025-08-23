@@ -1,0 +1,46 @@
+// Main entrypoint
+dotenv = _{ SOI ~ var_definitions? ~ EOI }
+
+// Variable definitions
+var_definitions = _{
+    comments?
+    ~ var_definition
+    ~ (comments ~ var_definition)*
+    ~ comments?
+    ~ comment? // without trailing newline
+}
+var_definition  =  {
+	ws*
+    ~ (export_var_name | var_name)
+    ~ ws*
+    ~ "="
+    ~ ws*
+    ~ var_value?
+    ~ ws*
+}
+export_var_name = _{ export ~ ws+ ~ var_name }
+
+// Variable names
+// Note: '_' is an invalid variable name
+var_name       = @{ "_" ~ var_name_rest+ | ASCII_ALPHA ~ var_name_rest* }
+var_name_rest  = _{ "_" | ASCII_ALPHANUMERIC }
+
+// Variable values
+var_value           = _{ var_value_sq | var_value_dq | var_value_uq }
+var_value_dq        = { dq ~ ("\\" ~ dq | !dq ~ ANY)* ~ dq }
+var_value_sq        = { sq ~ (!sq ~ ANY)* ~ sq }
+var_value_uq        = { (var_value_uq_escape | var_value_uq_octo | var_value_uq_other)* }
+var_value_uq_escape = _{ "\\" ~ ANY }
+var_value_uq_octo   = _{ !nl ~ !ws ~ ANY ~ "#"+ }
+var_value_uq_other  = _{ ws* ~ !nl ~ !"#" ~ ANY }
+
+comments = _{ (comment? ~ nl)+ }
+comment  = _{ "#" ~ (!nl ~ ANY)* }
+
+nl     = _{ "\n" | "\r\n" }
+dq     = _{ "\"" }
+sq     = _{ "'" }
+octo   = _{ "#" }
+export = _{ "export" }
+
+ws = _{ SPACE_SEPARATOR }
