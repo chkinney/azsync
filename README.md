@@ -18,6 +18,21 @@ To build from source:
 cargo install --git https://github.com/chkinney/azsync
 ```
 
+### Completions
+
+For shell completions, run `azsync completions [shell]`. Completions are
+supported for the following shells:
+
+- Bash (`bash`, default on Linux)
+- Powershell (`pwsh`, default on Windows)
+- Zsh (`zsh`, default on MacOS)
+- Fish (`fish`)
+- Elvish (`elvish`)
+- Nushell (`nushell`)
+
+The completions script will be output to stdout. Save it to a location
+appropriate for your shell.
+
 ## Synchronizing dotenv files
 
 `azsync` synchronizes your local dotenv file with secrets stored in Azure. By

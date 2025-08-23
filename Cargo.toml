@@ -17,6 +17,8 @@ azure_identity = { version = "0.27.0", features = ["reqwest_rustls", "tokio"] }
 azure_security_keyvault_secrets = "0.6.0"
 clap = { version = "4.5.45", features = ["derive"] }
 clap-cargo = "0.16.0"
+clap_complete = "4.5.57"
+clap_complete_nushell = "4.5.8"
 futures = "0.3.31"
 pest = "2.8.1"
 pest_derive = "2.8.1"
@@ -30,6 +32,7 @@ url = "2.5.6"
 all = { level = "warn", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
 
+enum_variant_names = "allow"
 needless_pass_by_value = "allow"
 struct_field_names = "allow"
 too_many_lines = "allow"

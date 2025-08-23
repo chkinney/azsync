@@ -35,6 +35,12 @@ pub struct GlobalOptions {
 /// A subcommand to execute.
 #[derive(Clone, Debug, Parser)]
 pub enum CliCommand {
+    /// Generate shell completions.
+    ///
+    /// Completions are written to stdout. Save them to the appropriate place
+    /// for your shell.
+    Completions(CompletionsOptions),
+
     /// Synchronize variables defined in your local dotenv file with Azure.
     ///
     /// This only synchronizes variables defined in your dotenv file (or dotenv
@@ -45,6 +51,50 @@ pub enum CliCommand {
     /// Vault. The conversion between the two will be done automatically for
     /// you when either pushing or pulling variables.
     Dotenv(DotenvOptions),
+}
+
+/// Options for generating shell completions.
+#[derive(Clone, Debug, Parser)]
+#[command(hide = true)] // Not relevant except during installation
+pub struct CompletionsOptions {
+    /// The shell to generate completions for.
+    #[arg(value_enum)]
+    #[cfg_attr(
+        any(target_os = "windows", target_os = "macos", target_os = "linux"),
+        arg(default_value_t),
+        doc = "",
+        doc = " If not provided, a default shell will be selected for your platform."
+    )]
+    pub shell: Shell,
+}
+
+/// A shell that completions can be generated for.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, ValueEnum)]
+#[cfg_attr(
+    any(target_os = "windows", target_os = "macos", target_os = "linux"),
+    derive(Default)
+)]
+pub enum Shell {
+    #[value(name = "bash")]
+    #[cfg_attr(target_os = "linux", default)]
+    Bash,
+
+    #[cfg_attr(target_os = "windows", default)]
+    #[value(name = "pwsh", alias = "powershell")]
+    PowerShell,
+
+    #[value(name = "zsh")]
+    #[cfg_attr(target_os = "macos", default)]
+    Zsh,
+
+    #[value(name = "elvish")]
+    Elvish,
+
+    #[value(name = "fish")]
+    Fish,
+
+    #[value(name = "nushell", alias = "nu")]
+    Nushell,
 }
 
 /// Options for configuring syncing a dotenv file.

@@ -13,6 +13,7 @@ pub async fn run() -> anyhow::Result<()> {
     // Run command
     match options.subcommand {
         CliCommand::Dotenv(command) => command.execute(&options.global).await?,
+        CliCommand::Completions(command) => command.execute(&options.global),
     }
 
     Ok(())
