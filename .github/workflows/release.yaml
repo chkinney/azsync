@@ -31,7 +31,7 @@ jobs:
         id: get_version
         run: |
           TAG_VERSION="${GITHUB_REF/refs\/tags\//}"
-          echo ::set-output name=version::${OVERRIDE_VERSION:-$TAG_VERSION}
+          echo 'version=${OVERRIDE_VERSION:-$TAG_VERSION}' >> $GITHUB_OUTPUT
       - name: Create release
         id: release
         uses: softprops/action-gh-release@v1
@@ -39,7 +39,6 @@ jobs:
           name: ${{ steps.get_version.outputs.version }}
           tag_name: ${{ steps.get_version.outputs.version }}
           prerelease: true # TODO: remove this on v1 release
-          make_latest: true
           files: |
             LICENSE-MIT
             LICENSE-APACHE
