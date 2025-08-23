@@ -1,5 +1,5 @@
 {
-  "[json][jsonc]": {
+  "[json][jsonc][yaml]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[rust]": {

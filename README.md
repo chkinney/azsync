@@ -10,7 +10,9 @@ To get started, run `azsync --help`.
 
 ## Installation
 
-Build from source:
+Download prebuilt binaries from the [releases] page.
+
+To build from source:
 
 ```shell
 cargo install --git https://github.com/chkinney/azsync
@@ -43,3 +45,5 @@ automatically based on it!
 
 This code is licensed under your choice of [MIT License](./LICENSE-MIT) or
 [Apache License, Version 2.0](./LICENSE-APACHE).
+
+[releases]: https://github.com/chkinney/azsync/releases
