@@ -31,7 +31,7 @@ jobs:
         id: get_version
         run: |
           TAG_VERSION="${GITHUB_REF/refs\/tags\//}"
-          echo 'version=${OVERRIDE_VERSION:-$TAG_VERSION}' >> $GITHUB_OUTPUT
+          echo "version=${OVERRIDE_VERSION:-$TAG_VERSION}" >> $GITHUB_OUTPUT
       - name: Create release
         id: release
         uses: softprops/action-gh-release@v1
