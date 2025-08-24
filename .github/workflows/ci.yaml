@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v5
       - name: Setup toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -27,9 +27,28 @@ jobs:
           --
           --check
 
+  cargo-deny:
+    name: cargo-deny (${{ matrix.checks }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        checks:
+          - advisories
+          - bans licenses sources
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Run cargo-deny
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check ${{ matrix.checks }}
+    continue-on-error: ${{ matrix.checks == 'advisories' }}
+
   test:
     name: Test (${{ matrix.target }})
-    needs: [fmt]
+    needs:
+      - fmt
+      - cargo-deny
     runs-on: ${{ matrix.target }}
     strategy:
       fail-fast: true
@@ -37,7 +56,7 @@ jobs:
         target: [windows-latest, ubuntu-latest, macos-latest]
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v5
       - name: Setup toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Run tests
@@ -47,11 +66,13 @@ jobs:
 
   clippy:
     name: Clippy
-    needs: [fmt]
+    needs:
+      - fmt
+      - cargo-deny
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v5
       - name: Setup toolchain
         uses: dtolnay/rust-toolchain@clippy
       - name: Run clippy
