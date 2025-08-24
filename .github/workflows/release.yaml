@@ -78,8 +78,12 @@ jobs:
           profile: minimal
           override: true
           target: ${{ matrix.target }}
+      - name: Install cargo-auditable
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-auditable
       - name: Build release
-        run: cargo build --verbose --release --target ${{ matrix.target }}
+        run: cargo auditable build --verbose --release --target ${{ matrix.target }}
       - name: Create archive
         id: create_archive
         shell: bash
