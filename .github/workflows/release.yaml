@@ -15,7 +15,7 @@ permissions:
 jobs:
   # Create the release separately so it is only created once
   create-release:
-    name: create-release
+    name: Create the release
     runs-on: ubuntu-latest
     # Enable for testing
     # env:
@@ -45,7 +45,7 @@ jobs:
 
   # Build the artifacts
   release:
-    name: Create release
+    name: Publish artifacts
     needs: [create-release]
     runs-on: ${{ matrix.os }}
     env:
