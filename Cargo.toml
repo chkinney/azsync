@@ -1,6 +1,6 @@
 [package]
 name = "azsync"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 publish = false
@@ -15,7 +15,7 @@ keywords = ["azure", "keyvault", "secrets", "dotenv", "env"]
 anyhow = "1.0.99"
 azure_identity = { version = "0.27.0", features = ["reqwest_rustls", "tokio"] }
 azure_security_keyvault_secrets = "0.6.0"
-clap = { version = "4.5.45", features = ["derive"] }
+clap = { version = "4.5.45", features = ["derive", "wrap_help"] }
 clap-cargo = "0.16.0"
 clap_complete = "4.5.57"
 clap_complete_nushell = "4.5.8"

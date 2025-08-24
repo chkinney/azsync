@@ -24,11 +24,11 @@ use crate::{
 impl Command for DotenvOptions {
     async fn execute(self, global_options: &GlobalOptions) -> anyhow::Result<()> {
         // Load dotenv file
-        let dotenv = DotenvFile::from_path_exists(&self.dotenv)?;
+        let dotenv = DotenvFile::from_path_exists(&global_options.env_file)?;
         let template = if self.no_template {
             None
         } else {
-            DotenvFile::from_path_exists(&self.template)?
+            DotenvFile::from_path_exists(&self.template_file)?
         };
 
         // Collect list of variables to synchronize
@@ -50,7 +50,7 @@ impl Command for DotenvOptions {
 
         // Get synchronized secrets from Key Vault
         let remote_vars =
-            get_remote_vars(&client, self.sync_mode, vars_to_sync.iter().copied()).await?;
+            get_remote_vars(&client, self.sync.sync_mode, vars_to_sync.iter().copied()).await?;
         info!(remote_vars=?remote_vars.keys());
 
         // Create a list of actions to execute
@@ -71,7 +71,7 @@ impl Command for DotenvOptions {
                     .unzip();
 
                 let name = name.to_string();
-                match self.sync_mode {
+                match self.sync.sync_mode {
                     SyncMode::Sync => VarAction::sync(
                         name,
                         local_value,
@@ -128,7 +128,7 @@ impl Command for DotenvOptions {
         let unchanged = actions
             .iter()
             .all(|action| matches!(action, VarAction::Skip { .. }));
-        if self.check_only || unchanged {
+        if self.sync.check_only || unchanged {
             exit(i32::from(!unchanged));
         }
 
@@ -171,7 +171,7 @@ impl Command for DotenvOptions {
         } else {
             DotenvFile::default().replace(pull)
         };
-        let mut file = File::create(&self.dotenv)?;
+        let mut file = File::create(&global_options.env_file)?;
         write!(file, "{new_source}")?;
 
         // Update remote values
