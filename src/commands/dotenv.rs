@@ -17,12 +17,12 @@ use tracing::info;
 
 use crate::{
     cli::{DotenvOptions, GlobalOptions, SyncMode},
+    commands::Command,
     dotenv::DotenvFile,
 };
 
-impl DotenvOptions {
-    /// Execute this subcommand.
-    pub async fn execute(self, _global_options: &GlobalOptions) -> anyhow::Result<()> {
+impl Command for DotenvOptions {
+    async fn execute(self, global_options: &GlobalOptions) -> anyhow::Result<()> {
         // Load dotenv file
         let dotenv = DotenvFile::from_path_exists(&self.dotenv)?;
         let template = if self.no_template {

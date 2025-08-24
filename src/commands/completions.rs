@@ -4,10 +4,13 @@ use clap::CommandFactory;
 use clap_complete::generate;
 use clap_complete_nushell::Nushell;
 
-use crate::cli::{Cli, CompletionsOptions, GlobalOptions, Shell};
+use crate::{
+    cli::{Cli, CompletionsOptions, GlobalOptions, Shell},
+    commands::Command,
+};
 
-impl CompletionsOptions {
-    pub fn execute(&self, _global_options: &GlobalOptions) {
+impl Command for CompletionsOptions {
+    async fn execute(self, _global_options: &GlobalOptions) -> anyhow::Result<()> {
         let mut cmd = Cli::command();
         let bin_name = cmd.get_name().to_string();
 
@@ -21,11 +24,13 @@ impl CompletionsOptions {
             Shell::Nushell => {
                 // This uses clap_complete_nushell's generator instead
                 generate(Nushell, &mut cmd, bin_name, &mut stdout());
-                return;
+                return Ok(());
             }
         };
 
         // Generate completions
         generate(shell, &mut cmd, bin_name, &mut stdout());
+
+        Ok(())
     }
 }

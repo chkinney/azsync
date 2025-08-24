@@ -3,7 +3,10 @@ use std::io::stderr;
 use clap::Parser;
 use tracing::level_filters::LevelFilter;
 
-use crate::cli::{Cli, CliCommand};
+use crate::{
+    cli::{Cli, CliCommand},
+    commands::Command,
+};
 
 pub async fn run() -> anyhow::Result<()> {
     // Parse CLI options
@@ -12,8 +15,8 @@ pub async fn run() -> anyhow::Result<()> {
 
     // Run command
     match options.subcommand {
+        CliCommand::Completions(command) => command.execute(&options.global).await?,
         CliCommand::Dotenv(command) => command.execute(&options.global).await?,
-        CliCommand::Completions(command) => command.execute(&options.global),
     }
 
     Ok(())
