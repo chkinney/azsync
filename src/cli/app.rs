@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 use clap_cargo::style::CLAP_STYLING;
 
-use crate::cli::{BlobOptions, CompletionsOptions, DotenvOptions, GlobalOptions};
+use crate::cli::{CompletionsOptions, DotenvOptions, GlobalOptions};
 
 /// Quickly synchronize local files with Azure.
 ///
