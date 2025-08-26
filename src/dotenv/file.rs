@@ -7,8 +7,9 @@ use std::{
     io::{ErrorKind, Read},
     ops::Range,
     path::Path,
-    time::SystemTime,
 };
+
+use time::OffsetDateTime;
 
 /// A loaded dotenv file.
 #[derive(Clone, Debug, Default)]
@@ -29,7 +30,7 @@ pub struct DotenvFile {
     pub(super) referenced: HashSet<String>,
 
     /// The last modified date, if available.
-    pub last_modified: Option<SystemTime>,
+    pub last_modified: Option<OffsetDateTime>,
 }
 
 impl DotenvFile {
@@ -54,10 +55,7 @@ impl DotenvFile {
 
         // Attach last modified time if available
         Ok(Some(Self {
-            last_modified: file
-                .metadata()
-                .and_then(|metadata| metadata.modified())
-                .ok(),
+            last_modified: Some(file.metadata()?.modified()?.into()),
             ..dotenv
         }))
     }

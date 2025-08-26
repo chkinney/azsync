@@ -3,12 +3,15 @@ use std::{
     collections::{HashMap, HashSet},
     fs::File,
     future::ready,
-    io::{Write, stdin, stdout},
+    io::Write,
     process::exit,
-    sync::Arc,
+    sync::{
+        Arc,
+        mpsc::{Sender, channel},
+    },
 };
 
-use anyhow::{Context, bail};
+use anyhow::Context;
 use azure_identity::DefaultAzureCredential;
 use azure_security_keyvault_secrets::{SecretClient, models::SetSecretParameters};
 use futures::{StreamExt, TryStreamExt, future::ok, stream::FuturesUnordered};
@@ -16,12 +19,13 @@ use time::OffsetDateTime;
 use tracing::info;
 
 use crate::{
-    cli::{DotenvOptions, GlobalOptions, SyncMode},
+    cli::{GlobalOptions, SyncDotenvOptions, SyncMode},
     commands::Command,
     dotenv::DotenvFile,
+    sync::{SyncAction, SyncType, confirm},
 };
 
-impl Command for DotenvOptions {
+impl Command for SyncDotenvOptions {
     async fn execute(self, global_options: &GlobalOptions) -> anyhow::Result<()> {
         // Load dotenv file
         let dotenv = DotenvFile::from_path_exists(&global_options.env_file)?;
@@ -44,7 +48,7 @@ impl Command for DotenvOptions {
         // Create client
         let credential =
             DefaultAzureCredential::new().context("Failed to get default Azure credential")?;
-        let key_vault_url = self.key_vault.resolve_url(dotenv.as_ref())?;
+        let key_vault_url = self.key_vault.key_vault_url.resolve(dotenv.as_ref())?;
         let client = SecretClient::new(key_vault_url.as_str(), credential, None)
             .context("Failed to create Key Vault secrets client")?;
 
@@ -54,10 +58,9 @@ impl Command for DotenvOptions {
         info!(remote_vars=?remote_vars.keys());
 
         // Create a list of actions to execute
-        let local_modified = dotenv
-            .as_ref()
-            .and_then(|dotenv| dotenv.last_modified)
-            .map(OffsetDateTime::from);
+        let client = Arc::new(client);
+        let (pairs_tx, pairs_rx) = channel();
+        let local_modified = dotenv.as_ref().and_then(|dotenv| dotenv.last_modified);
         let mut actions: Vec<_> = vars_to_sync
             .into_iter()
             .map(|name| {
@@ -70,64 +73,42 @@ impl Command for DotenvOptions {
                     .map(|&(ref value, modified)| (value.clone(), modified))
                     .unzip();
 
-                let name = name.to_string();
-                match self.sync.sync_mode {
-                    SyncMode::Sync => VarAction::sync(
-                        name,
-                        local_value,
-                        remote_value,
-                        local_modified,
-                        remote_modified.flatten(),
-                    ),
-                    SyncMode::Push => VarAction::sync(
-                        name,
-                        local_value,
-                        remote_value,
-                        local_modified,
-                        remote_modified.flatten(),
-                    )
-                    .push_only(),
-                    SyncMode::Pull => VarAction::sync(
-                        name,
-                        local_value,
-                        remote_value,
-                        local_modified,
-                        remote_modified.flatten(),
-                    )
-                    .pull_only(),
-                    SyncMode::PushAlways => match local_value {
-                        Some(value) => VarAction::Push { name, value },
-                        None => VarAction::Skip {
-                            name,
-                            reason: "No local value",
-                        },
+                SyncType::from_modified(
+                    self.sync.sync_mode,
+                    local_modified,
+                    remote_modified.flatten(),
+                    name,
+                    |_, name| PushVar {
+                        name: name.to_string(),
+                        value: local_value.expect("local value should be Some"),
+                        client: client.clone(),
                     },
-                    SyncMode::PullAlways => match remote_value {
-                        Some(value) => VarAction::Pull { name, value },
-                        None => VarAction::Skip {
-                            name,
-                            reason: "No remote value",
-                        },
+                    |remote_modified, name| PullVar {
+                        name: name.to_string(),
+                        value: remote_value.expect("remote value should be Some"),
+                        remote_modified,
+                        pairs_tx: pairs_tx.clone(),
                     },
-                }
+                    ToString::to_string,
+                )
             })
             .collect();
-        actions.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal));
+        actions.sort_unstable();
 
         // Print actions to the user
         println!("Actions:");
         for action in &actions {
             match action {
-                VarAction::Pull { name, .. } => println!("-> PULL: {name}"),
-                VarAction::Push { name, .. } => println!("<- PUSH: {name}"),
-                VarAction::Skip { name, reason } => println!("   SKIP: {name} ({reason})"),
+                SyncType::Pull(PullVar { name, .. }) => println!("-> PULL: {name}"),
+                SyncType::Push(PushVar { name, .. }) => println!("<- PUSH: {name}"),
+                SyncType::Skip { reason, data } => println!("   SKIP: {data} ({reason})"),
             }
         }
 
         // If we're only checking, make no changes
         let unchanged = actions
             .iter()
-            .all(|action| matches!(action, VarAction::Skip { .. }));
+            .all(|action| matches!(action, SyncType::Skip { .. }));
         if self.sync.check_only || unchanged {
             exit(i32::from(!unchanged));
         }
@@ -136,46 +117,40 @@ impl Command for DotenvOptions {
         println!();
         confirm()?;
 
-        // Split into push and pull actions
-        let push = FuturesUnordered::new();
-        let mut pull = HashMap::with_capacity(actions.len());
-        let client = Arc::new(client);
-        for action in actions {
-            match action {
-                VarAction::Pull { name, value } => {
-                    pull.insert(name, value);
+        // Get the latest that the remote was modified for the dotenv
+        let new_local_modified = actions
+            .iter()
+            .filter_map(|action| {
+                if let SyncType::Pull(PullVar {
+                    remote_modified, ..
+                }) = action
+                {
+                    Some(*remote_modified)
+                } else {
+                    None
                 }
-                VarAction::Push { name, value } => {
-                    let params = SetSecretParameters {
-                        content_type: Some("text/plain".into()),
-                        value: Some(value),
-                        ..Default::default()
-                    };
-                    let client = client.clone();
+            })
+            .max();
 
-                    // `async move` is to give the future ownership of `name`
-                    // (otherwise the future isn't `'static`)
-                    let fut = async move {
-                        let name = name.replace('_', "-");
-                        client.set_secret(&name, params.try_into()?, None).await
-                    };
-                    push.push(fut);
-                }
-                VarAction::Skip { .. } => {}
-            }
-        }
+        // Execute the actions
+        let actions: FuturesUnordered<_> = actions.into_iter().map(SyncAction::execute).collect();
+        actions.try_collect::<()>().await?;
 
         // Update local file
-        let new_source = if let Some(dotenv) = dotenv {
-            dotenv.replace(pull)
-        } else {
-            DotenvFile::default().replace(pull)
-        };
-        let mut file = File::create(&global_options.env_file)?;
-        write!(file, "{new_source}")?;
+        let replacements: HashMap<_, _> = pairs_rx.into_iter().collect();
+        if !replacements.is_empty() {
+            let new_source = if let Some(dotenv) = dotenv {
+                dotenv.replace(replacements)
+            } else {
+                DotenvFile::default().replace(replacements)
+            };
+            let mut file = File::create(&global_options.env_file)?;
+            write!(file, "{new_source}")?;
+            file.flush()?;
 
-        // Update remote values
-        push.map_ok(|_| {}).try_collect::<()>().await?;
+            // Track the new modified time
+            file.set_modified(new_local_modified.expect("no new modified").into())?;
+        }
 
         Ok(())
     }
@@ -224,143 +199,87 @@ async fn get_remote_vars(
     Ok(remote_vars)
 }
 
-fn confirm() -> anyhow::Result<()> {
-    let mut input = String::new();
-    loop {
-        print!("Confirm (yes/no)? ");
-        stdout().flush()?;
-        input.clear();
-        stdin().read_line(&mut input)?;
+pub struct PullVar {
+    name: String,
+    value: String,
+    remote_modified: OffsetDateTime,
+    pairs_tx: Sender<(String, String)>,
+}
 
-        match input.as_str().trim_end() {
-            "y" | "yes" => return Ok(()),
-            "n" | "no" => {
-                bail!("Aborted");
-            }
-            _ => {
-                // Ask again
-            }
-        }
+impl SyncAction for PullVar {
+    async fn execute(self) -> anyhow::Result<()> {
+        self.pairs_tx.send((self.name, self.value))?;
+        Ok(())
     }
 }
 
-#[derive(Clone)]
-enum VarAction {
-    Pull { name: String, value: String },
-    Push { name: String, value: String },
-    Skip { name: String, reason: &'static str },
-}
-
-impl VarAction {
-    /// Convert this action to skip if it's not a push action.
-    pub fn push_only(self) -> Self {
-        match self {
-            VarAction::Pull { name, .. } => Self::Skip {
-                name,
-                reason: "pull disabled",
-            },
-            action => action,
-        }
-    }
-
-    /// Convert this action to skip if it's not a pull action.
-    pub fn pull_only(self) -> Self {
-        match self {
-            VarAction::Push { name, .. } => Self::Skip {
-                name,
-                reason: "push disabled",
-            },
-            action => action,
-        }
-    }
-
-    pub fn sync(
-        name: String,
-        local_value: Option<String>,
-        remote_value: Option<String>,
-        local_modified: Option<OffsetDateTime>,
-        remote_modified: Option<OffsetDateTime>,
-    ) -> Self {
-        match (local_value, remote_value) {
-            // Unchanged
-            (Some(local_value), Some(remote_value)) if local_value == remote_value => Self::Skip {
-                name,
-                reason: "unchanged",
-            },
-
-            // Conflict
-            (Some(local_value), Some(remote_value)) => {
-                // Determine newer version
-                match (local_modified, remote_modified) {
-                    // Remote is newer
-                    (Some(local_modified), Some(remote_modified))
-                        if remote_modified >= local_modified =>
-                    {
-                        Self::Pull {
-                            name,
-                            value: remote_value,
-                        }
-                    }
-
-                    // Local is newer (or unknown when remote was modified)
-                    (Some(_), _) => Self::Push {
-                        name,
-                        value: local_value,
-                    },
-
-                    // Unknown when local was modified
-                    (None, Some(_)) => Self::Pull {
-                        name,
-                        value: remote_value,
-                    },
-
-                    // Unknown when either was modified
-                    (None, None) => Self::Skip {
-                        name,
-                        reason: "unknown modified times",
-                    },
-                }
-            }
-
-            // Only available locally
-            (Some(local_value), _) => Self::Push {
-                name,
-                value: local_value,
-            },
-
-            // Only available in remote
-            (_, Some(remote_value)) => Self::Pull {
-                name,
-                value: remote_value,
-            },
-
-            // Not available in either (only in dotenv template for example)
-            (None, None) => Self::Skip {
-                name,
-                reason: "no value found",
-            },
-        }
-    }
-}
-
-impl PartialEq for VarAction {
+impl PartialEq for PullVar {
     fn eq(&self, other: &Self) -> bool {
-        self.partial_cmp(other) == Some(Ordering::Equal)
+        // Only compare names so only the name is used when sorting
+        self.name == other.name
     }
 }
 
-impl PartialOrd for VarAction {
+// Technically this forms a total equality relationship
+impl Eq for PullVar {}
+
+impl PartialOrd for PullVar {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        match (self, other) {
-            (Self::Push { name: a, .. }, Self::Push { name: b, .. })
-            | (Self::Pull { name: a, .. }, Self::Pull { name: b, .. })
-            | (Self::Skip { name: a, .. }, Self::Skip { name: b, .. }) => a.partial_cmp(b),
+        // Only compare names
+        Some(self.cmp(other))
+    }
+}
 
-            (Self::Push { .. }, _) => Some(Ordering::Less),
-            (_, Self::Push { .. }) => Some(Ordering::Greater),
+impl Ord for PullVar {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Technically forms a total ordering on the names
+        self.name.cmp(&other.name)
+    }
+}
 
-            (Self::Pull { .. }, _) => Some(Ordering::Less),
-            (_, Self::Pull { .. }) => Some(Ordering::Greater),
-        }
+pub struct PushVar {
+    name: String,
+    value: String,
+    client: Arc<SecretClient>,
+}
+
+impl SyncAction for PushVar {
+    async fn execute(self) -> anyhow::Result<()> {
+        let params = SetSecretParameters {
+            content_type: Some("text/plain".into()),
+            value: Some(self.value),
+            ..Default::default()
+        };
+
+        let name = self.name.replace('_', "-");
+        self.client
+            .set_secret(&name, params.try_into()?, None)
+            .await?;
+
+        Ok(())
+    }
+}
+
+impl PartialEq for PushVar {
+    fn eq(&self, other: &Self) -> bool {
+        // Only compare names so only the name is used when sorting
+        self.name == other.name
+    }
+}
+
+// Technically this forms a total equality relationship
+impl Eq for PushVar {}
+
+impl PartialOrd for PushVar {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        // Only compare names
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for PushVar {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Technically forms a total ordering on the names
+        self.name.cmp(&other.name)
     }
 }

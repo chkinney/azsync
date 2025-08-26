@@ -1,5 +1,6 @@
 use clap::Args;
-use url::Url;
+
+use crate::cli::EnvUrl;
 
 /// Options for configuring the Key Vault instance.
 #[derive(Clone, Debug, Args)]
@@ -16,5 +17,5 @@ pub struct KeyVaultOptions {
     /// file is present, then the program's environment variables will be
     /// searched instead.
     #[arg(long, default_value = "env://KEY_VAULT_URL")]
-    pub key_vault_url: Url,
+    pub key_vault_url: EnvUrl,
 }

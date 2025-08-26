@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 use clap_cargo::style::CLAP_STYLING;
 
-use crate::cli::{CompletionsOptions, DotenvOptions, GlobalOptions};
+use crate::cli::{CompletionsOptions, GlobalOptions, SyncDotenvOptions};
 
 /// Quickly synchronize local files with Azure.
 ///
@@ -42,7 +42,7 @@ pub enum CliCommand {
     /// (underscores) to represent '-' (hyphens) in secret names stored in Key
     /// Vault. The conversion between the two will be done automatically for
     /// you when either pushing or pulling variables.
-    Dotenv(DotenvOptions),
+    Dotenv(SyncDotenvOptions),
 }
 
 const AFTER_HELP: &str = concat!(

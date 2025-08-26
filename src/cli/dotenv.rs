@@ -6,7 +6,7 @@ use crate::cli::{KeyVaultOptions, SyncOptions};
 
 /// Options for configuring syncing a dotenv file.
 #[derive(Clone, Debug, Args)]
-pub struct DotenvOptions {
+pub struct SyncDotenvOptions {
     /// The dotenv template file.
     ///
     /// If present, variable names defined in it will be the ONLY variables
