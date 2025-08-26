@@ -15,6 +15,7 @@ keywords = ["azure", "keyvault", "secrets", "dotenv", "env"]
 anyhow = "1.0.99"
 azure_identity = { version = "0.27.0", features = ["reqwest_rustls", "tokio"] }
 azure_security_keyvault_secrets = "0.6.0"
+azure_storage_blob = "0.4.0"
 clap = { version = "4.5.45", features = ["derive", "wrap_help"] }
 clap-cargo = "0.16.0"
 clap_complete = "4.5.57"
@@ -26,6 +27,7 @@ time = "0.3.41"
 tokio = { version = "1.47.1", features = ["full"] }
 tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
+typespec_client_core = { version = "0.6.0", features = ["reqwest_rustls", "tokio"] }
 url = "2.5.6"
 
 [lints.clippy]

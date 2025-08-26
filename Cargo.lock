@@ -127,6 +127,7 @@ dependencies = [
  "anyhow",
  "azure_identity",
  "azure_security_keyvault_secrets",
+ "azure_storage_blob",
  "clap",
  "clap-cargo",
  "clap_complete",
@@ -140,6 +141,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "typespec_client_core",
  "url",
 ]
 
@@ -211,6 +213,20 @@ dependencies = [
  "time",
  "tokio",
  "typespec_client_core",
+]
+
+[[package]]
+name = "azure_storage_blob"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7addf32c8bc4db52b1e744cbf0293f9f219160401fc42b2bc750ea2fda2d2783"
+dependencies = [
+ "async-trait",
+ "azure_core",
+ "serde",
+ "typespec_client_core",
+ "url",
+ "uuid",
 ]
 
 [[package]]
@@ -1280,6 +1296,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "quick-xml"
+version = "0.31.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1004a344b30a54e2ee58d66a71b32d2db2feb0a31f9a2d302bf0536f15de2a33"
+dependencies = [
+ "memchr",
+ "serde",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2012,6 +2038,7 @@ dependencies = [
  "futures",
  "getrandom 0.3.3",
  "pin-project",
+ "quick-xml",
  "rand",
  "reqwest",
  "serde",
@@ -2057,13 +2084,14 @@ checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 
 [[package]]
 name = "url"
-version = "2.5.6"
+version = "2.5.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "137a3c834eaf7139b73688502f3f1141a0337c5d8e4d9b536f9b8c796e26a7c4"
+checksum = "08bc136a29a3d1758e07a9cca267be308aeebf5cfd5a10f3f67ab2097683ef5b"
 dependencies = [
  "form_urlencoded",
  "idna",
  "percent-encoding",
+ "serde",
 ]
 
 [[package]]

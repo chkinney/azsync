@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 use clap_cargo::style::CLAP_STYLING;
 
-use crate::cli::{CompletionsOptions, GlobalOptions, SyncDotenvOptions};
+use crate::cli::{CompletionsOptions, GlobalOptions, SyncDotenvOptions, SyncFileOptions};
 
 /// Quickly synchronize local files with Azure.
 ///
@@ -43,6 +43,9 @@ pub enum CliCommand {
     /// Vault. The conversion between the two will be done automatically for
     /// you when either pushing or pulling variables.
     Dotenv(SyncDotenvOptions),
+
+    /// Synchronize a file with Azure.
+    File(SyncFileOptions),
 }
 
 const AFTER_HELP: &str = concat!(

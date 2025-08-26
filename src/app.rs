@@ -17,6 +17,7 @@ pub async fn run() -> anyhow::Result<()> {
     match options.subcommand {
         CliCommand::Completions(command) => command.execute(&options.global).await?,
         CliCommand::Dotenv(command) => command.execute(&options.global).await?,
+        CliCommand::File(command) => command.execute(&options.global).await?,
     }
 
     Ok(())
