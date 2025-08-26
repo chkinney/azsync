@@ -49,6 +49,8 @@ impl Command for SyncDotenvOptions {
         let credential =
             DefaultAzureCredential::new().context("Failed to get default Azure credential")?;
         let key_vault_url = self.key_vault.key_vault_url.resolve(dotenv.as_ref())?;
+        info!("Using:");
+        info!("  Key Vault: {key_vault_url}");
         let client = SecretClient::new(key_vault_url.as_str(), credential, None)
             .context("Failed to create Key Vault secrets client")?;
 
