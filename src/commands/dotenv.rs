@@ -73,9 +73,21 @@ impl Command for SyncDotenvOptions {
                     .map(|&(ref value, modified)| (value.clone(), modified))
                     .unzip();
 
+                // Check if values are equal
+                if local_value
+                    .as_ref()
+                    .zip(remote_value.as_ref())
+                    .is_some_and(|(a, b)| a == b)
+                {
+                    return SyncType::Skip {
+                        reason: "unchanged",
+                        data: name.to_string(),
+                    };
+                }
+
                 SyncType::from_modified(
                     self.sync.sync_mode,
-                    local_modified,
+                    local_value.as_ref().and(local_modified),
                     remote_modified.flatten(),
                     name,
                     |_, name| PushVar {
@@ -149,7 +161,11 @@ impl Command for SyncDotenvOptions {
             file.flush()?;
 
             // Track the new modified time if it's later than the current modified time
-            let new_modified = local_modified.zip(new_modified).map(|(a, b)| max(a, b));
+            let new_modified = match (local_modified, new_modified) {
+                (None, None) => None,
+                (None, Some(time)) | (Some(time), None) => Some(time),
+                (Some(a), Some(b)) => Some(max(a, b)),
+            };
             if let Some(new_modified) = new_modified {
                 file.set_modified(new_modified.into())?;
             }
