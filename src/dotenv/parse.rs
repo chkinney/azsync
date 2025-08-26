@@ -230,4 +230,14 @@ mod tests {
 
         assert!(dotenv.value_spans.is_empty());
     }
+
+    #[test_case(""; "empty file")]
+    #[test_case("\n"; "single newline")]
+    #[test_case("# foo\n# bar"; "only comments")]
+    #[test_case("# foo\n# bar\n"; "only comments and newline")]
+    fn empty(s: &str) {
+        let dotenv = DotenvFile::parse(s).unwrap();
+        assert!(dotenv.parameters.is_empty());
+        assert!(dotenv.value_spans.is_empty());
+    }
 }

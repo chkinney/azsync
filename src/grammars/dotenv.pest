@@ -1,14 +1,15 @@
 // Main entrypoint
-dotenv = _{ SOI ~ var_definitions? ~ EOI }
-
-// Variable definitions
-var_definitions = _{
-    comments?
-    ~ var_definition
-    ~ (comments ~ var_definition)*
+dotenv = _{
+    SOI
+    ~ comments?
+    ~ (var_definition ~ comments)*
+    ~ var_definition?
     ~ comments?
     ~ comment? // without trailing newline
+    ~ EOI
 }
+
+// Variable definitions
 var_definition  =  {
 	ws*
     ~ (export_var_name | var_name)
