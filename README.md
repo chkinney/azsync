@@ -35,9 +35,9 @@ appropriate for your shell.
 
 ## Synchronizing dotenv files
 
-`azsync` synchronizes your local dotenv file with secrets stored in Azure. By
-default, it looks for a Key Vault instance configured via the `KEY_VAULT_URL`
-environment variable.
+`azsync dotenv` synchronizes your local dotenv file with secrets stored in
+Azure. By default, it looks for a Key Vault instance configured via the
+`KEY_VAULT_URL` environment variable.
 
 > [!TIP]
 > You can save `KEY_VAULT_URL` in your dotenv file and `azsync` will use it.
@@ -55,6 +55,29 @@ which variables to synchronize instead. This way, you can control which
 variables are synchronized to avoid pushing/pulling values you don't want
 affected. You can even have `azsync` generate a dotenv file for you
 automatically based on it!
+
+## Synchronizing other files
+
+`azsync file` synchronizes any file with a blob stored in an Azure storage
+account container. By default, it looks for the following environment variables:
+
+- `STORAGE_ACCOUNT_URL`: blob storage endpoint
+  - This can be found under Settings -> Endpoint in Azure Portal
+- `STORAGE_ACCOUNT_CONTAINER`: container name
+
+The blob name, by default, is the name of the file being synchronized.
+
+> [!TIP]
+> Similar to `azsync dotenv`, these variables can be loaded from a dotenv file!
+
+`azsync file` ensures that whichever version is newer (local vs. remote) is
+synchronized to both locations. This can be used to quickly share a file with
+another person.
+
+Note that the contents of the files will not be compared, only the modified
+times. When pulling or pushing, `azsync` makes sure that the correct modified
+time is stored. This ensures that the files can be compared quickly without
+needing to save them both to disk or load either of them fully in memory.
 
 ## License
 
