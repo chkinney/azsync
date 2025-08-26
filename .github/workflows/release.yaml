@@ -101,11 +101,11 @@ jobs:
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             cp "$TARGET_DIR/release/azsync.exe" "$ARTIFACT_DIR/"
             7z a "$ARTIFACT_DIR.zip" "$ARTIFACT_DIR"
-            echo ::set-output name=asset::$ARTIFACT_DIR.zip
+            echo "asset=$ARTIFACT_DIR.zip" >> $GITHUB_OUTPUT
           else
             cp "$TARGET_DIR/release/azsync" "$ARTIFACT_DIR/"
             tar -czf "$ARTIFACT_DIR.tar.gz" "$ARTIFACT_DIR"
-            echo ::set-output name=asset::$ARTIFACT_DIR.tar.gz
+            echo "asset=$ARTIFACT_DIR.tar.gz" >> $GITHUB_OUTPUT
           fi
       - name: Upload archive
         uses: softprops/action-gh-release@v1
