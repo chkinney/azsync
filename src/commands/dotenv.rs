@@ -1,5 +1,5 @@
 use std::{
-    cmp::Ordering,
+    cmp::{Ordering, max},
     collections::{HashMap, HashSet},
     fs::File,
     future::ready,
@@ -117,7 +117,7 @@ impl Command for SyncDotenvOptions {
         confirm()?;
 
         // Get the latest that the remote was modified for the dotenv
-        let new_local_modified = actions
+        let new_modified = actions
             .iter()
             .filter_map(|action| {
                 if let SyncType::Pull(PullVar {
@@ -147,8 +147,11 @@ impl Command for SyncDotenvOptions {
             write!(file, "{new_source}")?;
             file.flush()?;
 
-            // Track the new modified time
-            file.set_modified(new_local_modified.expect("no new modified").into())?;
+            // Track the new modified time if it's later than the current modified time
+            let new_modified = local_modified.zip(new_modified).map(|(a, b)| max(a, b));
+            if let Some(new_modified) = new_modified {
+                file.set_modified(new_modified.into())?;
+            }
         }
 
         Ok(())
