@@ -16,7 +16,7 @@ use azure_identity::DefaultAzureCredential;
 use azure_security_keyvault_secrets::{SecretClient, models::SetSecretParameters};
 use futures::{StreamExt, TryStreamExt, future::ok, stream::FuturesUnordered};
 use time::OffsetDateTime;
-use tracing::info;
+use tracing::{debug, info};
 
 use crate::{
     cli::{GlobalOptions, SyncDotenvOptions, SyncMode},
@@ -43,7 +43,7 @@ impl Command for SyncDotenvOptions {
             .context("Cannot synchronize without a dotenv or dotenv template file")?
             .map(String::as_str)
             .collect();
-        info!(local_vars=?vars_to_sync.iter());
+        debug!(local_vars=?vars_to_sync.iter());
 
         // Create client
         let credential =
@@ -55,7 +55,7 @@ impl Command for SyncDotenvOptions {
         // Get synchronized secrets from Key Vault
         let remote_vars =
             get_remote_vars(&client, self.sync.sync_mode, vars_to_sync.iter().copied()).await?;
-        info!(remote_vars=?remote_vars.keys());
+        debug!(remote_vars=?remote_vars.keys());
 
         // Create a list of actions to execute
         let client = Arc::new(client);
