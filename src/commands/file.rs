@@ -56,9 +56,9 @@ impl Command for SyncFileOptions {
             .resolve(dotenv.as_ref())?;
         let container_name = self.azure_storage.container_name.resolve(dotenv.as_ref())?;
         info!("Using:");
-        info!("   Endpoint: {endpoint}");
+        info!("  Endpoint: {endpoint}");
         info!("  Container: {container_name}");
-        info!("       Blob: {blob_name}");
+        info!("  Blob: {blob_name}");
         let client = BlobClient::new(
             endpoint.as_str(),
             container_name.into_owned(),
