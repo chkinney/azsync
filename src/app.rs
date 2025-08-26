@@ -14,10 +14,17 @@ pub async fn run() -> anyhow::Result<()> {
     init_tracing(&options);
 
     // Run command
-    match options.subcommand {
-        CliCommand::Completions(command) => command.execute(&options.global).await?,
-        CliCommand::Dotenv(command) => command.execute(&options.global).await?,
-        CliCommand::File(command) => command.execute(&options.global).await?,
+    let result = match options.subcommand {
+        CliCommand::Completions(command) => command.execute(&options.global).await,
+        CliCommand::Dotenv(command) => command.execute(&options.global).await,
+        CliCommand::File(command) => command.execute(&options.global).await,
+    };
+
+    // Report errors
+    if let Err(error) = result {
+        for cause in error.chain() {
+            tracing::error!("{cause}");
+        }
     }
 
     Ok(())
@@ -25,15 +32,23 @@ pub async fn run() -> anyhow::Result<()> {
 
 /// Setup the tracing subscriber based on the provided CLI options.
 fn init_tracing(options: &Cli) {
+    // Set level filter based on verbosity
     let filter = match options.global.verbose {
-        0 => LevelFilter::OFF,
-        1 => LevelFilter::INFO,
+        0 | 1 => LevelFilter::INFO,
         2 => LevelFilter::DEBUG,
         3.. => LevelFilter::TRACE,
     };
-    tracing_subscriber::fmt()
+
+    let subscriber = tracing_subscriber::fmt()
         .compact()
         .with_max_level(filter)
         .with_writer(stderr)
-        .init();
+        .with_target(options.global.verbose > 1);
+
+    if options.global.verbose == 0 {
+        // Exclude timestamps for non-verbose output
+        subscriber.without_time().init();
+    } else {
+        subscriber.init();
+    }
 }

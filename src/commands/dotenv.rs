@@ -96,12 +96,12 @@ impl Command for SyncDotenvOptions {
         actions.sort_unstable();
 
         // Print actions to the user
-        println!("Actions:");
+        info!("Actions:");
         for action in &actions {
             match action {
-                SyncType::Pull(PullVar { name, .. }) => println!("-> PULL: {name}"),
-                SyncType::Push(PushVar { name, .. }) => println!("<- PUSH: {name}"),
-                SyncType::Skip { reason, data } => println!("   SKIP: {data} ({reason})"),
+                SyncType::Pull(PullVar { name, .. }) => info!("-> PULL: {name}"),
+                SyncType::Push(PushVar { name, .. }) => info!("<- PUSH: {name}"),
+                SyncType::Skip { reason, data } => info!("   SKIP: {data} ({reason})"),
             }
         }
 
@@ -114,7 +114,6 @@ impl Command for SyncDotenvOptions {
         }
 
         // Ask for confirmation
-        println!();
         confirm()?;
 
         // Get the latest that the remote was modified for the dotenv

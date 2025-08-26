@@ -14,6 +14,7 @@ use azure_storage_blob::{
 use futures::TryStreamExt;
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use tokio::fs::File as AsyncFile;
+use tracing::info;
 use typespec_client_core::{
     fs::FileStreamBuilder,
     http::{StatusCode, response::ResponseBody},
@@ -124,11 +125,11 @@ impl Command for SyncFileOptions {
         );
 
         // Print actions to the user
-        println!("Action:");
+        info!("Action:");
         match action {
-            SyncType::Push(_) => println!("<- PUSH"),
-            SyncType::Pull(_) => println!("-> PULL"),
-            SyncType::Skip { reason, .. } => println!("   SKIP ({reason})"),
+            SyncType::Push(_) => info!("<- PUSH"),
+            SyncType::Pull(_) => info!("-> PULL"),
+            SyncType::Skip { reason, .. } => info!("   SKIP ({reason})"),
         }
 
         if matches!(action, SyncType::Skip { .. }) {
@@ -140,7 +141,6 @@ impl Command for SyncFileOptions {
         }
 
         // Ask for confirmation
-        println!();
         confirm()?;
 
         // Execute the action
