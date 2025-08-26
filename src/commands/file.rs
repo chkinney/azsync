@@ -33,7 +33,13 @@ impl Command for SyncFileOptions {
     async fn execute(self, global_options: &GlobalOptions) -> anyhow::Result<()> {
         // Load dotenv file
         let dotenv = DotenvFile::from_path_exists(&global_options.env_file)?;
-        let local_path = self.path.canonicalize()?;
+        let local_path = match self.path.canonicalize() {
+            Ok(path) => path,
+            // File doesn't exist yet, so can't be canonicalized
+            Err(error) if error.kind() == ErrorKind::NotFound => self.path,
+            // Other type of I/O error
+            Err(error) => bail!(error),
+        };
         let blob_name = self
             .blob_name
             .as_ref()
@@ -160,10 +166,10 @@ impl SyncAction for PullFile {
     async fn execute(mut self) -> anyhow::Result<()> {
         // Save the file to disk
         let mut file = File::create(self.local_path)?;
-        file.set_modified(self.remote_modified.into())?;
         while let Some(chunk) = self.remote_blob.try_next().await? {
             file.write_all(&chunk)?;
         }
+        file.set_modified(self.remote_modified.into())?;
 
         Ok(())
     }
