@@ -136,6 +136,7 @@ impl Command for SyncDotenvOptions {
         actions.try_collect::<()>().await?;
 
         // Update local file
+        drop(pairs_tx); // to allow the channel to close after actions complete
         let replacements: HashMap<_, _> = pairs_rx.into_iter().collect();
         if !replacements.is_empty() {
             let new_source = if let Some(dotenv) = dotenv {
