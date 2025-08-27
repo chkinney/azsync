@@ -131,7 +131,9 @@ impl Command for SyncDotenvOptions {
         }
 
         // Ask for confirmation
-        confirm()?;
+        if !self.sync.no_confirm {
+            confirm()?;
+        }
 
         // Get the latest that the remote was modified for the dotenv
         let new_modified = actions

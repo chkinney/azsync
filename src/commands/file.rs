@@ -156,7 +156,9 @@ impl Command for SyncFileOptions {
         }
 
         // Ask for confirmation
-        confirm()?;
+        if !self.sync.no_confirm {
+            confirm()?;
+        }
 
         // Execute the action
         action.execute().await?;
