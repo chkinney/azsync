@@ -1,0 +1,16 @@
+The name of the remote blob.
+
+If not provided, the name of the file being synchronized is used as the blob name instead.
+
+The blob name can either be a standard blob name or a pattern. Note that if you are synchronizing multiple files, then a pattern must be provided instead.
+
+Patterns support the following placeholders:
+
+- #name#: The name of the file (without its directory)
+  - Example: /foo/bar/baz.tar.gz -> baz.tar.gz
+- #ext#: The file extension (final suffix, excluding dot prefixes)
+  - Example: /foo/bar/baz.tar.gz -> gz
+  - Example: .env -> (no extension, exit with error)
+- #stem#: The portion of the name that is not the extension
+  - Example: /foo/bar/baz.tar.gz -> baz.tar
+  - Example: .env -> .env
