@@ -32,7 +32,11 @@ const MODIFIED_META: &str = "modified";
 impl Command for SyncFileOptions {
     async fn execute(self, global_options: &GlobalOptions) -> anyhow::Result<()> {
         // Load dotenv file
-        let dotenv = DotenvFile::from_path_exists(&global_options.env_file)?;
+        let dotenv = if global_options.no_env_file {
+            None
+        } else {
+            DotenvFile::from_path_exists(&global_options.env_file)?
+        };
         let local_path = match self.path.canonicalize() {
             Ok(path) => path,
             // File doesn't exist yet, so can't be canonicalized

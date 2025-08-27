@@ -14,10 +14,14 @@ pub struct GlobalOptions {
     #[arg(global = true, long, short = 'e', default_value = ".env")]
     pub env_file: PathBuf,
 
-    /// Disables --env-file.
+    /// Disables loading options from dotenv files (with --env-file).
     ///
     /// If a dotenv file specified by --env-file exists, it will be ignored.
     /// This flag takes precedence over --env-file.
+    ///
+    /// Note that this only applies to loading options from your dotenv file.
+    /// azsync dotenv still uses the value of --env-file to find which dotenv
+    /// file to sync, and still loads that file when synchronizing.
     #[arg(global = true, long)]
     pub no_env_file: bool,
 
