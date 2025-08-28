@@ -1,8 +1,9 @@
 use std::{
+    borrow::Cow,
     collections::HashSet,
     fs::File,
     io::{ErrorKind, Write},
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::exit,
     sync::Arc,
 };
@@ -169,17 +170,17 @@ impl Command for SyncFileOptions {
                 SyncType::Push(inner) => info!(
                     "<- PUSH: {} <- {}",
                     inner.context.blob_name,
-                    inner.context.local_path.display(),
+                    simplify_path(&inner.context.local_path).display(),
                 ),
                 SyncType::Pull(inner) => info!(
                     "-> PULL: {} -> {}",
                     inner.context.blob_name,
-                    inner.context.local_path.display(),
+                    simplify_path(&inner.context.local_path).display(),
                 ),
                 SyncType::Skip { reason, data } => info!(
                     "   SKIP ({reason}): {} -- {}",
                     data.blob_name,
-                    data.local_path.display(),
+                    simplify_path(&data.local_path).display(),
                 ),
             }
         }
@@ -203,6 +204,36 @@ impl Command for SyncFileOptions {
 
         Ok(())
     }
+}
+
+/// Removes verbatim prefixes from Windows paths to make them more readable.
+///
+/// For example, strips the `\\?\` from `\\?\C:\foo.txt`.
+#[cfg(windows)]
+fn simplify_path(old_path: &Path) -> Cow<'_, Path> {
+    use std::path::{Component, Prefix};
+
+    // Check if the first component is a verbatim disk path (like `\\?\C:`)
+    if let Some(Component::Prefix(prefix)) = old_path.components().next()
+        && let Prefix::VerbatimDisk(disk) = prefix.kind()
+    {
+        // Replace it with a simple disk prefix
+        let mut new_path = PathBuf::with_capacity(old_path.as_os_str().len());
+        new_path.push(format!(r"{}:", disk as char));
+
+        // Push the rest of the path
+        new_path.extend(old_path.components().skip(1));
+
+        new_path.into()
+    } else {
+        old_path.into()
+    }
+}
+
+/// Does nothing on non-Windows systems.
+#[cfg(not(windows))]
+fn simplify_path(old_path: &Path) -> Cow<'_, Path> {
+    old_path.into()
 }
 
 async fn get_file_action(
