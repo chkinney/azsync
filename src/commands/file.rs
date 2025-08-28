@@ -133,6 +133,11 @@ impl Command for SyncFileOptions {
             },
         )?;
 
+        // Check if any names are invalid
+        if blob_names.iter().any(String::is_empty) {
+            bail!("Empty blob names are not allowed");
+        }
+
         // Check if we had duplicate names
         if !duplicate_names.is_empty() {
             // Format the names
