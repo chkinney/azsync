@@ -44,7 +44,7 @@ pub enum CliCommand {
     /// you when either pushing or pulling variables.
     Dotenv(SyncDotenvOptions),
 
-    /// Synchronize a file with Azure.
+    /// Synchronize files with Azure.
     File(SyncFileOptions),
 }
 

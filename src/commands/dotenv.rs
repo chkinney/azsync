@@ -1,5 +1,5 @@
 use std::{
-    cmp::{Ordering, max},
+    cmp::max,
     collections::{HashMap, HashSet},
     fs::File,
     future::ready,
@@ -232,34 +232,12 @@ pub struct PullVar {
     pairs_tx: Sender<(String, String)>,
 }
 
+sortable_by_key!(PullVar, str, |action| &action.name);
+
 impl SyncAction for PullVar {
     async fn execute(self) -> anyhow::Result<()> {
         self.pairs_tx.send((self.name, self.value))?;
         Ok(())
-    }
-}
-
-impl PartialEq for PullVar {
-    fn eq(&self, other: &Self) -> bool {
-        // Only compare names so only the name is used when sorting
-        self.name == other.name
-    }
-}
-
-// Technically this forms a total equality relationship
-impl Eq for PullVar {}
-
-impl PartialOrd for PullVar {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        // Only compare names
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for PullVar {
-    fn cmp(&self, other: &Self) -> Ordering {
-        // Technically forms a total ordering on the names
-        self.name.cmp(&other.name)
     }
 }
 
@@ -268,6 +246,8 @@ pub struct PushVar {
     value: String,
     client: Arc<SecretClient>,
 }
+
+sortable_by_key!(PushVar, str, |action| &action.name);
 
 impl SyncAction for PushVar {
     async fn execute(self) -> anyhow::Result<()> {
@@ -283,29 +263,5 @@ impl SyncAction for PushVar {
             .await?;
 
         Ok(())
-    }
-}
-
-impl PartialEq for PushVar {
-    fn eq(&self, other: &Self) -> bool {
-        // Only compare names so only the name is used when sorting
-        self.name == other.name
-    }
-}
-
-// Technically this forms a total equality relationship
-impl Eq for PushVar {}
-
-impl PartialOrd for PushVar {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        // Only compare names
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for PushVar {
-    fn cmp(&self, other: &Self) -> Ordering {
-        // Technically forms a total ordering on the names
-        self.name.cmp(&other.name)
     }
 }
