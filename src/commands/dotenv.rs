@@ -51,7 +51,7 @@ impl Command for SyncDotenvOptions {
         let key_vault_url = self
             .key_vault
             .key_vault_url
-            .resolve(dotenv.as_ref().filter(|_| global_options.no_env_file))?;
+            .resolve(dotenv.as_ref().filter(|_| !global_options.no_env_file))?;
         info!("Using:");
         info!("  Key Vault: {key_vault_url}");
         let client = SecretClient::new(key_vault_url.as_str(), credential, None)
