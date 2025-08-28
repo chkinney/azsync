@@ -78,8 +78,8 @@ impl Command for SyncFileOptions {
                     .and_then(|stem| stem.to_str().context("File stem must be valid Unicode"));
                 let mut ext = path
                     .extension()
-                    .context("No file extension")
-                    .and_then(|ext| ext.to_str().context("File extension must be valid Unicode"));
+                    .map(|ext| ext.to_str().context("File extension must be valid Unicode"))
+                    .transpose();
 
                 /// Tries to copy the `Ok` variant out of a result.
                 ///
@@ -98,12 +98,17 @@ impl Command for SyncFileOptions {
                 for part in self.blob_name.split('#') {
                     if placeholder {
                         let inserted = match part {
-                            "name" => copy_try!(name),
-                            "stem" => copy_try!(stem),
-                            "ext" => copy_try!(ext),
+                            "name" => Cow::Borrowed(copy_try!(name)),
+                            "stem" => Cow::Borrowed(copy_try!(stem)),
+                            "suffix" => Cow::Owned(
+                                copy_try!(ext)
+                                    .map(|ext| format!(".{ext}"))
+                                    .unwrap_or_default(),
+                            ),
+                            "ext" => Cow::Borrowed(copy_try!(ext).unwrap_or_default()),
                             other => bail!("Invalid placeholder: {other:?}"),
                         };
-                        blob_name.push_str(inserted);
+                        blob_name.push_str(&inserted);
                     } else {
                         blob_name.push_str(part);
                     }

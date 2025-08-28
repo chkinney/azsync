@@ -8,9 +8,12 @@ Patterns support the following placeholders:
 
 - #name#: The name of the file (without its directory)
   - Example: /foo/bar/baz.tar.gz -> baz.tar.gz
-- #ext#: The file extension (final suffix, excluding dot prefixes)
-  - Example: /foo/bar/baz.tar.gz -> gz
-  - Example: .env -> (no extension, exit with error)
-- #stem#: The portion of the name that is not the extension
+- #stem#: The portion of the name that is not the suffix
   - Example: /foo/bar/baz.tar.gz -> baz.tar
   - Example: .env -> .env
+- #suffix#: The file extension (final suffix, including dot)
+  - Example: /foo/bar/baz.tar.gz -> .gz
+  - Example: .env -> "" (no extension)
+- #ext#: The file extension (final suffix, excluding dot)
+  - Example: /foo/bar/baz.tar.gz -> gz
+  - Example: .env -> "" (no extension)
