@@ -148,3 +148,65 @@ pub fn confirm() -> anyhow::Result<()> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use test_case::test_case;
+    use time::macros::datetime;
+
+    use super::*;
+
+    const DT_2024: OffsetDateTime = datetime!(2024-01-01 00:00 +00:00);
+    const DT_2025: OffsetDateTime = datetime!(2025-01-01 00:00 +00:00);
+
+    // SyncMode::Sync
+    #[test_case(SyncMode::Sync, None, None => matches SyncType::Skip { .. }; "sync not-found")]
+    #[test_case(SyncMode::Sync, Some(DT_2025), None => SyncType::Push(DT_2025); "sync local-only")]
+    #[test_case(SyncMode::Sync, None, Some(DT_2025) => SyncType::Pull(DT_2025); "sync remote-only")]
+    #[test_case(SyncMode::Sync, Some(DT_2025), Some(DT_2024) => SyncType::Push(DT_2025); "sync conflict local-newer")]
+    #[test_case(SyncMode::Sync, Some(DT_2024), Some(DT_2025) => SyncType::Pull(DT_2025); "sync conflict remote-newer")]
+    #[test_case(SyncMode::Sync, Some(DT_2025), Some(DT_2025) => matches SyncType::Skip { .. }; "sync conflict same-time")]
+    // SyncMode::Push
+    #[test_case(SyncMode::Push, None, None => matches SyncType::Skip { .. }; "push not-found")]
+    #[test_case(SyncMode::Push, Some(DT_2025), None => SyncType::Push(DT_2025); "push local-only")]
+    #[test_case(SyncMode::Push, None, Some(DT_2025) => matches SyncType::Skip { .. }; "push remote-only")]
+    #[test_case(SyncMode::Push, Some(DT_2025), Some(DT_2024) => SyncType::Push(DT_2025); "push conflict local-newer")]
+    #[test_case(SyncMode::Push, Some(DT_2024), Some(DT_2025) => matches SyncType::Skip { .. }; "push conflict remote-newer")]
+    #[test_case(SyncMode::Push, Some(DT_2025), Some(DT_2025) => matches SyncType::Skip { .. }; "push conflict same-time")]
+    // SyncMode::Pull
+    #[test_case(SyncMode::Pull, None, None => matches SyncType::Skip { .. }; "pull not-found")]
+    #[test_case(SyncMode::Pull, Some(DT_2025), None => matches SyncType::Skip { .. }; "pull local-only")]
+    #[test_case(SyncMode::Pull, None, Some(DT_2025) => SyncType::Pull(DT_2025); "pull remote-only")]
+    #[test_case(SyncMode::Pull, Some(DT_2025), Some(DT_2024) => matches SyncType::Skip { .. }; "pull conflict local-newer")]
+    #[test_case(SyncMode::Pull, Some(DT_2024), Some(DT_2025) => SyncType::Pull(DT_2025); "pull conflict remote-newer")]
+    #[test_case(SyncMode::Pull, Some(DT_2025), Some(DT_2025) => matches SyncType::Skip { .. }; "pull conflict same-time")]
+    // SyncMode::PushAlways
+    #[test_case(SyncMode::PushAlways, None, None => matches SyncType::Skip { .. }; "push-always not-found")]
+    #[test_case(SyncMode::PushAlways, Some(DT_2025), None => SyncType::Push(DT_2025); "push-always local-only")]
+    #[test_case(SyncMode::PushAlways, None, Some(DT_2025) => matches SyncType::Skip { .. }; "push-always remote-only")]
+    #[test_case(SyncMode::PushAlways, Some(DT_2025), Some(DT_2024) => SyncType::Push(DT_2025); "push-always conflict local-newer")]
+    #[test_case(SyncMode::PushAlways, Some(DT_2024), Some(DT_2025) => SyncType::Push(DT_2024); "push-always conflict remote-newer")]
+    #[test_case(SyncMode::PushAlways, Some(DT_2025), Some(DT_2025) => SyncType::Push(DT_2025); "push-always conflict same-time")]
+    // SyncMode::PullAlways
+    #[test_case(SyncMode::PullAlways, None, None => matches SyncType::Skip { .. }; "pull-always not-found")]
+    #[test_case(SyncMode::PullAlways, Some(DT_2025), None => matches SyncType::Skip { .. }; "pull-always local-only")]
+    #[test_case(SyncMode::PullAlways, None, Some(DT_2025) => SyncType::Pull(DT_2025); "pull-always remote-only")]
+    #[test_case(SyncMode::PullAlways, Some(DT_2025), Some(DT_2024) => SyncType::Pull(DT_2024); "pull-always conflict local-newer")]
+    #[test_case(SyncMode::PullAlways, Some(DT_2024), Some(DT_2025) => SyncType::Pull(DT_2025); "pull-always conflict remote-newer")]
+    #[test_case(SyncMode::PullAlways, Some(DT_2025), Some(DT_2025) => SyncType::Pull(DT_2025); "pull-always conflict same-time")]
+    fn from_modified_correct_variant(
+        sync_mode: SyncMode,
+        local: Option<OffsetDateTime>,
+        remote: Option<OffsetDateTime>,
+    ) -> SyncType<OffsetDateTime, OffsetDateTime, ()> {
+        SyncType::from_modified(
+            sync_mode,
+            local,
+            remote,
+            (),
+            |time, ()| time,
+            |time, ()| time,
+            |()| (),
+        )
+    }
+}
