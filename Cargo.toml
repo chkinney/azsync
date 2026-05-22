@@ -1,6 +1,6 @@
 [package]
 name = "azsync"
-version = "0.2.0"
+version = "0.2.5"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 publish = false
@@ -27,7 +27,10 @@ time = "0.3.41"
 tokio = { version = "1.47.1", features = ["full"] }
 tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
-typespec_client_core = { version = "0.6.0", features = ["reqwest_rustls", "tokio"] }
+typespec_client_core = { version = "0.6.0", features = [
+    "reqwest_rustls",
+    "tokio",
+] }
 url = "2.5.6"
 
 [lints.clippy]
